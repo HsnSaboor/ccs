@@ -36,6 +36,7 @@ import { resolveProxyConfig, PROXY_CLI_FLAGS } from './proxy-config-resolver';
 import { getWebSearchHookEnv } from '../utils/websearch-manager';
 import { supportsModelConfig, isModelBroken, getModelIssueUrl, findModel } from './model-catalog';
 import { CodexReasoningProxy } from './codex-reasoning-proxy';
+import { SanitizerProxy } from './sanitizer-proxy';
 import {
   findAccountByQuery,
   getProviderAccounts,
@@ -751,11 +752,34 @@ export async function execClaudeWithCLIProxy(
     }
   }
 
+  // Gemini/AGY Sanitizer Proxy: sanitize tool names to satisfy strict regex requirements
+  let sanitizerProxy: SanitizerProxy | null = null;
+  let sanitizerPort: number | null = null;
+  if (provider === 'gemini' || provider === 'agy') {
+    try {
+      sanitizerProxy = new SanitizerProxy(cfg.port);
+      sanitizerPort = await sanitizerProxy.start();
+      log(`Sanitizer proxy active: http://127.0.0.1:${sanitizerPort} -> ${cfg.port}`);
+      // Disable client-side WebSearch hook (SanitizerProxy handles it)
+      process.env.CCS_WEBSEARCH_PROXY_HANDLED = '1';
+    } catch (error) {
+      const err = error as Error;
+      sanitizerProxy = null;
+      sanitizerPort = null;
+      console.error(warn(`Sanitizer proxy failed: ${err.message}`));
+    }
+  }
+
   const effectiveEnvVars =
     codexReasoningProxy && codexReasoningPort
       ? {
           ...envVars,
           ANTHROPIC_BASE_URL: `http://127.0.0.1:${codexReasoningPort}/api/provider/codex`,
+        }
+      : sanitizerProxy && sanitizerPort
+      ? {
+          ...envVars,
+          ANTHROPIC_BASE_URL: `http://127.0.0.1:${sanitizerPort}`,
         }
       : envVars;
   const webSearchEnv = getWebSearchHookEnv();
@@ -837,6 +861,10 @@ export async function execClaudeWithCLIProxy(
       codexReasoningProxy.stop();
     }
 
+    if (sanitizerProxy) {
+      sanitizerProxy.stop();
+    }
+
     // Unregister this session (proxy keeps running for persistence) - only for local mode
     if (sessionId) {
       unregisterSession(sessionId, sessionPort);
@@ -857,6 +885,10 @@ export async function execClaudeWithCLIProxy(
       codexReasoningProxy.stop();
     }
 
+    if (sanitizerProxy) {
+      sanitizerProxy.stop();
+    }
+
     // Unregister session, proxy keeps running (local mode only)
     if (sessionId) {
       unregisterSession(sessionId, sessionPort);
@@ -870,6 +902,10 @@ export async function execClaudeWithCLIProxy(
 
     if (codexReasoningProxy) {
       codexReasoningProxy.stop();
+    }
+
+    if (sanitizerProxy) {
+      sanitizerProxy.stop();
     }
 
     // Unregister session, proxy keeps running (local mode only)

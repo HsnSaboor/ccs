@@ -93,6 +93,17 @@ export class ContentTransformer {
   }
 
   /**
+   * Sanitize Anthropic tools in-place (maintain Anthropic format)
+   * Useful for proxies that forward Anthropic format but need compliant names
+   */
+  sanitizeAnthropicTools(anthropicTools: AnthropicTool[]): AnthropicTool[] {
+    return anthropicTools.map((tool) => ({
+      ...tool,
+      name: this.sanitizeToolName(tool.name),
+    }));
+  }
+
+  /**
    * Sanitize tool name to meet OpenAI/Gemini requirements
    * Must start with letter/underscore and contain only alphanumeric/underscore/dash
    */

@@ -64,7 +64,7 @@ echo "[i] Detected package manager: $PKG_MANAGER"
 
 # Build TypeScript first
 echo "[i] Building TypeScript..."
-bun run build
+bun run build:all
 
 # Pack the npm package
 echo "[i] Creating package..."

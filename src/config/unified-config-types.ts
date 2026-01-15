@@ -548,7 +548,7 @@ export function createEmptyUnifiedConfig(): UnifiedConfig {
       providers: {
         gemini: {
           enabled: true,
-          model: 'gemini-2.5-flash',
+          model: 'gemini-2.0-flash',
           timeout: 55,
         },
         opencode: {

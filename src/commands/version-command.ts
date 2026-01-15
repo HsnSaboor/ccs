@@ -16,7 +16,7 @@ import { getVersion } from '../utils/version';
  */
 export async function handleVersionCommand(): Promise<void> {
   await initUI();
-  console.log(header(`CCS (Claude Code Switch) v${getVersion()}`));
+  console.log(header(`CCS (Claude Code Switch) v${getVersion()} (HsnSaboor-patch)`));
   console.log('');
 
   console.log(subheader('Installation:'));
